@@ -75,6 +75,12 @@ COMMANDS = {
         "desc": "启动命令行交互对话模式，最轻量的使用方式",
         "cmd": ["python", "{PROJECT_DIR}/agentmain.py"],
     },
+    "repl": {
+        "help": "启动 REPL 交互模式 (prompt_toolkit + Rich)",
+        "desc": "启动增强型命令行交互模式，支持流式输出、子命令、历史记录等",
+        "cmd": None,
+        "internal": True,
+    },
     "launch": {
         "help": "启动 webview 桌面壳 (launch.pyw)",
         "desc": "以原生窗口形式包装 stapp Web 界面（基于 pywebview）",
@@ -161,6 +167,9 @@ def main():
               ga pet               启动桌面宠物 v2
               ga launch            启动 webview 桌面壳
               ga list              列出所有命令
+              ga repl              启动 REPL 交互模式
+              ga repl --llm=1      使用指定 LLM 模型启动 REPL
+              ga repl --verbose    以详细模式启动 REPL
         """),
     )
     parser.add_argument("command", nargs="?", help="命令名")
@@ -191,6 +200,32 @@ def main():
 
     if cmd == "update":
         cmd_update()
+        return
+
+    if cmd == "repl":
+        # 启动 REPL 交互模式
+        try:
+            from .repl import start_repl
+            # 解析 REPL 特有参数
+            llm_no = 0
+            verbose = False
+            for arg in args.args + unknown:
+                if arg.startswith("--llm="):
+                    try:
+                        llm_no = int(arg.split("=", 1)[1])
+                    except ValueError:
+                        print(f"❌ 无效的 LLM 编号: {arg}")
+                        sys.exit(1)
+                elif arg == "--verbose":
+                    verbose = True
+            start_repl(llm_no=llm_no, verbose=verbose)
+        except ImportError as e:
+            print(f"❌ REPL 模块加载失败: {e}")
+            print("   请确保已安装依赖: pip install prompt_toolkit rich")
+            sys.exit(1)
+        except Exception as e:
+            print(f"❌ REPL 启动失败: {e}")
+            sys.exit(1)
         return
 
     if cmd not in COMMANDS:
