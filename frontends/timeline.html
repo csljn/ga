@@ -540,6 +540,7 @@ async function loadTimeline(tid) {
   currentTimeline = data;
   renderToolbar(data);
   renderMessages(data);
+  renderSidebar();
 }
 
 async function importAll() {
