@@ -16,5 +16,14 @@
     "content": "Timeline 回溯系统已完成开发并提交到 git。\n\n**完成摘要：**\n\n### 1. 后端 `frontends/timeline_app.py` (FastAPI + WebSocket)\n- **对话解析**：解析 `temp/model_responses/` 下的日志文件，提取 user/assistant 消息、工具调用信息和摘要\n- **时间线数据结构**：`Timeline` dataclass，包含 `id, name, parent_id, fork_point, source_file, messages, cursor` 等字段\n- **API 端点**：\n  - `GET /api/timelines` — 列出所有时间线\n  - `GET /api/timelines/{tid}` — 获取时间线详情（带消息窗口）\n  - `POST /api/timelines/import` — 导入日志文件（单个或全部）\n  - `POST /api/timelines/{tid}/fork` — 从指定消息节点 Fork 分支\n  - `POST /api/timelines/{tid}/send` — 向时间线发送消息\n  - `POST /api/timelines/{tid}/navigate` — 导航（prev/next/first/last）\n  - `POST /api/timelines/{tid}/rename` — 重命名\n  - `DELETE /api/timelines/{tid}` — 删除\n- **WebSocket** (`/ws`)：实时广播时间线变更\n- **持久化**：时间线数据存储在 `temp/timelines/*.json`\n\n### 2. 前端 `frontends/timeline.html`\n- **侧边栏**：时间线列表，显示消息数、更新时间、Fork 标记\n- **消息查看器**：user/assistant 消息卡片，高亮当前光标位置\n- **导航控制**：前进/后退/首/尾按钮\n- **Fork 按钮**：hover 消息时显示，点击即可从该点创建分支\n- **输入栏**：可向时间线追加用户消息\n- **管理功能**：重命名、删除、Import All / Import File\n\n### 3. Git 提交\n- Commit: `ab28695` — `feat(timeline): 创建对话回溯系统，支持时间线导航和分支Fork`\n- 4 files changed, 1340 insertions\n\n启动方式：`python frontends/timeline_app.py`，然后访问 `http://127.0.0.1:8910`",
     "timestamp": "2026-06-03T05:31:30.090Z",
     "read": true
+  },
+  {
+    "id": "msg-1780464792755-n2ku9d",
+    "from": "skill-agent",
+    "to": "team-lead",
+    "type": "message",
+    "content": "## 技能系统开发完成\n\n已成功创建 GenericAgent 技能系统，包含以下 4 个文件：\n\n### 1. 技能树可视化后端 (`frontends/skill_tree_app.py`)\n- **FastAPI + WebSocket** 架构，端口 8901\n- 递归扫描 `memory/` 目录，构建 `SkillNode` 树状结构\n- 解析 SOP 文件：提取 `#` 标题、`##` 子标题、`###` 功能点\n- API 端点：\n  - `GET /` - 前端页面\n  - `GET /api/tree` - 获取完整技能树 JSON\n  - `POST /api/refresh` - 强制重新扫描\n  - `GET /api/file/{path}` - 读取文件内容\n  - WebSocket `/ws` - 实时更新\n\n### 2. 技能树前端 (`frontends/skill_tree.html`)\n- 双面板布局：左侧树状图，右侧详情面板\n- 功能特性：\n  - 树状节点展示（目录/文件图标区分）\n  - 节点展开/折叠控制\n  - 搜索过滤功能\n  - 详情面板显示：类型、大小、章节列表、功能点标签、文件内容预览\n  - 实时 WebSocket 连接\n\n### 3. SOP 编辑器后端 (`frontends/sop_editor.py`)\n- **FastAPI + WebSocket** 架构，端口 8902\n- 文件管理 API：\n  - `GET /api/files` - 列出所有可编辑文件（.md/.py）\n  - `GET /api/file/{path}` - 读取文件内容\n  - `POST /api/file` - 保存文件\n  - `POST /api/create` - 创建新文件\n  - `DELETE /api/file/{path}` - 删除文件\n- WebSocket 实时同步多客户端编辑\n\n### 4. SOP 编辑器前端 (`frontends/sop_editor.html`)\n- 三栏布局：文件浏览器 | 代码编辑器 | Markdown 预览\n- 功能特性：\n  - 文件树浏览器（支持搜索过滤）\n  - 代码编辑器（支持 Tab 缩进、Ctrl+S 保存）\n  - 实时 Markdown 预览（300ms 防抖）\n  - 文件操作：新建、删除、保存\n  - 修改状态指示器\n\n### 技术实现\n- 参考 `plan_state.py` 的正则解析设计\n- 使用 `SkillNode` dataclass 数据结构\n- FastAPI + WebSocket 实时通信\n- 前端使用原生 JS + marked.js（Markdown 渲染）\n\n### Git 提交\n```\n43e2a64 feat(skill): 创建技能系统，支持技能树可视化和SOP编辑器\n```\n\n### 启动方式\n```bash\n# 技能树可视化\npython frontends/skill_tree_app.py  # http://127.0.0.1:8901\n\n# SOP 编辑器\npython frontends/sop_editor.py      # http://127.0.0.1:8902\n```",
+    "timestamp": "2026-06-03T05:33:12.755Z",
+    "read": true
   }
 ]
