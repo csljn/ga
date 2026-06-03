@@ -34,5 +34,14 @@
     "content": "蜂巢系统开发完成，已提交到git。\n\n**完成摘要**：\n\n1. **`frontends/agent_bbs.py`** - BBS核心逻辑\n   - SQLite数据库存储，包含goals、workers、tasks三张表\n   - 目标管理API：创建、查询、更新目标状态\n   - Worker管理API：注册、心跳、状态更新\n   - 任务管理API：创建、领取、完成、失败\n   - 帖子系统（兼容原BBS功能）\n   - 统计API：获取各实体数量统计\n\n2. **`frontends/hive_app.py`** - 蜂巢管理前端\n   - FastAPI + WebSocket实时更新架构\n   - 可视化仪表板：目标、Worker、任务统计\n   - 目标管理界面：创建、状态流转（open → in_progress → completed/failed）\n   - Worker管理界面：注册、状态切换（idle/busy/offline）\n   - 任务管理界面：创建、领取、完成/失败\n   - 系统日志面板\n   - 自动刷新（WebSocket + 定时轮询）\n\n**使用方式**：\n```bash\n# 启动BBS核心\npython frontends/agent_bbs.py --port 58800 --db hive_bbs.db\n\n# 启动管理前端\npython frontends/hive_app.py --port 58801 --db hive_bbs.db\n```\n\nGit commit: `7cdd6a2` - feat(hive): 创建蜂巢系统，支持BBS消息板多Agent协作",
     "timestamp": "2026-06-03T05:33:58.112Z",
     "read": true
+  },
+  {
+    "id": "msg-1780465313789-r2u9e6",
+    "from": "morphling-agent",
+    "to": "team-lead",
+    "type": "message",
+    "content": "Morphling 吸收系统已完成开发并提交到 git (commit f63d7a1)。\n\n**新增文件**: `frontends/morphling_app.py` (796 行)\n\n**实现内容**:\n\n1. **代码分析引擎 (CodeAnalyzer)**:\n   - `scan_directory()` - 递归扫描项目目录结构，统计文件数和类型\n   - `analyze_python_file()` - 使用 AST 解析 Python 文件，提取函数、类、导入、常量、装饰器\n   - `_regex_analyze()` - AST 失败时的正则回退分析\n   - `analyze_project()` - 完整项目分析（目录扫描 + 逐文件分析）\n   - `extract_capabilities()` - 从模块中提取能力，自动识别类型（web_service, websocket_service, data_layer, class_library, function_library 等）和复杂度\n\n2. **API 端点**:\n   - `GET /` - 前端管理界面\n   - `POST /api/scan` - 创建扫描任务\n   - `POST /api/scan/{id}/start` - 执行扫描（异步分析 + 写入数据库）\n   - `GET /api/scan/{id}` - 获取扫描详情\n   - `GET /api/scan/{id}/capabilities` - 获取扫描结果中的能力列表\n   - `DELETE /api/scan/{id}` - 删除扫描及相关数据\n   - `GET /api/capabilities` - 能力列表（支持 scan_id/status/cap_type 过滤）\n   - `GET /api/capability/{id}` - 能力详情\n   - `POST /api/absorb` - 启动吸收（支持 integrate/replace/extend/reference 四种策略）\n   - `POST /api/absorb/batch` - 批量吸收\n   - `GET /api/absorb/{id}` - 吸收状态\n   - `WebSocket /ws` - 实时进度推送\n\n3. **蜂巢系统集成**:\n   - 吸收任务会通过 httpx 调用 `hive_app.py` 的 `/api/goal` 接口发布吸收目标\n   - 吸收完成后自动更新蜂巢目标状态为 completed\n   - 蜂巢系统不可用时本地跟踪不受影响\n\n4. **管理界面**:\n   - 仪表盘统计（扫描/能力/吸收任务）\n   - 项目扫描面板（创建扫描、查看结果、删除）\n   - 能力列表面板（搜索、全选、批量吸收、详情查看、单个吸收）\n   - 吸收任务面板（进度条、状态、结果）\n   - 系统日志面板\n   - WebSocket 实时更新\n\n5. **技术栈**: FastAPI + WebSocket + SQLite + Python AST + 原生 HTML/JS/CSS（暗色 GitHub 风格 UI）\n\n**运行方式**: `python frontends/morphling_app.py --port 58802`",
+    "timestamp": "2026-06-03T05:41:53.789Z",
+    "read": true
   }
 ]
