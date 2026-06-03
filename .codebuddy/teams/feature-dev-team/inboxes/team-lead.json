@@ -7,5 +7,14 @@
     "content": "## 更新系统开发完成\n\n已成功创建 `e:\\GenericAgent-main\\frontends\\update_app.py`，代码已提交。\n\n### 实现的功能\n\n**1. 版本检测**\n- `check_for_updates()` 使用 `git remote update` + `git rev-list HEAD..@{u} --count` 检测更新\n- 显示当前版本（commit hash、message、date、author）\n- 显示远程最新版本信息\n- 显示落后的 commit 列表\n\n**2. 差异对比**\n- `get_diff_info()` 显示文件变更列表（新增/修改/删除/重命名）\n- 显示代码差异统计（`--stat`）和完整 diff（带行数限制 50KB）\n- 检测潜在冲突文件（本地有修改且远程也变更的文件）\n\n**3. 一键更新**\n- `perform_update()` 执行 `git pull --rebase`\n- 本地有修改时自动 `stash push` 保存，更新后 `stash pop` 恢复\n- 冲突检测：本地修改与远程更新有交集时提示用户确认\n- rebase 失败自动 `rebase --abort`\n- `force_remote=True` 时强制覆盖本地修改\n\n**4. FastAPI API 接口**\n- `GET /` — 返回 HTML 更新界面\n- `GET /api/status` — 获取当前仓库状态\n- `GET /api/check` — 检查是否有更新\n- `GET /api/diff` — 获取差异详情\n- `POST /api/update` — 执行更新（body: `{force_remote: bool}`）\n- `POST /api/restart` — 请求重启\n\n**5. 前端界面**\n- 内嵌 HTML/JS，暗色主题，现代 UI\n- 三个 Tab：提交记录 / 文件变更 / 代码差异\n- 颜色高亮的 diff 展示（绿色新增、红色删除）\n- 冲突文件警告和强制更新按钮\n- 启动命令：`python frontends/update_app.py [--port 8901]`\n\n### Git 提交\n- 已执行 `git init && git add -A && git commit`\n- Commit: `8fe1380` — \"feat(update): 创建更新系统，支持版本检测和一键更新\"\n- 200 files changed, 49535 insertions",
     "timestamp": "2026-06-03T05:30:19.970Z",
     "read": true
+  },
+  {
+    "id": "msg-1780464690090-syvtw1",
+    "from": "timeline-agent",
+    "to": "team-lead",
+    "type": "message",
+    "content": "Timeline 回溯系统已完成开发并提交到 git。\n\n**完成摘要：**\n\n### 1. 后端 `frontends/timeline_app.py` (FastAPI + WebSocket)\n- **对话解析**：解析 `temp/model_responses/` 下的日志文件，提取 user/assistant 消息、工具调用信息和摘要\n- **时间线数据结构**：`Timeline` dataclass，包含 `id, name, parent_id, fork_point, source_file, messages, cursor` 等字段\n- **API 端点**：\n  - `GET /api/timelines` — 列出所有时间线\n  - `GET /api/timelines/{tid}` — 获取时间线详情（带消息窗口）\n  - `POST /api/timelines/import` — 导入日志文件（单个或全部）\n  - `POST /api/timelines/{tid}/fork` — 从指定消息节点 Fork 分支\n  - `POST /api/timelines/{tid}/send` — 向时间线发送消息\n  - `POST /api/timelines/{tid}/navigate` — 导航（prev/next/first/last）\n  - `POST /api/timelines/{tid}/rename` — 重命名\n  - `DELETE /api/timelines/{tid}` — 删除\n- **WebSocket** (`/ws`)：实时广播时间线变更\n- **持久化**：时间线数据存储在 `temp/timelines/*.json`\n\n### 2. 前端 `frontends/timeline.html`\n- **侧边栏**：时间线列表，显示消息数、更新时间、Fork 标记\n- **消息查看器**：user/assistant 消息卡片，高亮当前光标位置\n- **导航控制**：前进/后退/首/尾按钮\n- **Fork 按钮**：hover 消息时显示，点击即可从该点创建分支\n- **输入栏**：可向时间线追加用户消息\n- **管理功能**：重命名、删除、Import All / Import File\n\n### 3. Git 提交\n- Commit: `ab28695` — `feat(timeline): 创建对话回溯系统，支持时间线导航和分支Fork`\n- 4 files changed, 1340 insertions\n\n启动方式：`python frontends/timeline_app.py`，然后访问 `http://127.0.0.1:8910`",
+    "timestamp": "2026-06-03T05:31:30.090Z",
+    "read": true
   }
 ]

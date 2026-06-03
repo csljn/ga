@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SOP Editor</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: rgba(255,255,255,0.78);
+      --border: rgba(31,42,68,0.10);
+      --text: #172033;
+      --muted: #7a8497;
+      --soft: #43506a;
+      --accent: #3b82f6;
+      --accent-2: #8b5cf6;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --shadow: 0 18px 55px rgba(30, 45, 80, .11);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; height: 100vh; overflow: hidden;
+      font-family: Inter, "SF Pro Display", "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 600px at 12% 8%, rgba(59, 130, 246, .14), transparent 54%),
+        radial-gradient(800px 650px at 86% 18%, rgba(139, 92, 246, .12), transparent 58%),
+        linear-gradient(180deg, #fbfcff, var(--bg));
+    }
+    .app {
+      height: 100vh; padding: 16px;
+      display: grid;
+      grid-template-columns: 280px 1fr 1fr;
+      gap: 14px;
+    }
+    .pane {
+      min-height: 0; display: flex; flex-direction: column;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,255,255,.66));
+      backdrop-filter: blur(18px);
+      border-radius: 20px; box-shadow: var(--shadow); overflow: hidden;
+    }
+    .head {
+      padding: 14px 16px 10px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(31,42,68,.075);
+      background: rgba(255,255,255,.34);
+    }
+    .title { font-size: 15px; font-weight: 700; }
+    .hint { color: var(--muted); font-size: 11px; }
+
+    /* File browser */
+    .file-list {
+      flex: 1; overflow: auto; padding: 8px;
+    }
+    .file-list::-webkit-scrollbar { width: 6px; }
+    .file-list::-webkit-scrollbar-thumb { background: rgba(31,42,68,.12); border-radius: 8px; }
+    .file-item {
+      padding: 7px 10px; border-radius: 8px; cursor: pointer;
+      font-size: 13px; display: flex; align-items: center; gap: 6px;
+      transition: background .12s;
+    }
+    .file-item:hover { background: rgba(59,130,246,.08); }
+    .file-item.active { background: rgba(59,130,246,.15); font-weight: 600; }
+    .file-item .icon { width: 18px; text-align: center; flex-shrink: 0; }
+    .file-item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dir-item { font-weight: 600; color: var(--soft); }
+    .dir-children { margin-left: 18px; }
+
+    .search-box {
+      padding: 8px 12px; border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.3);
+    }
+    .search-input {
+      width: 100%; padding: 7px 10px; border: 1px solid var(--border);
+      border-radius: 8px; background: rgba(255,255,255,.8);
+      font-size: 12px; outline: none;
+    }
+    .search-input:focus { border-color: var(--accent); }
+
+    .file-actions {
+      padding: 8px 12px; border-top: 1px solid var(--border);
+      background: rgba(255,255,255,.3); display: flex; gap: 6px;
+    }
+    .btn-sm {
+      flex: 1; padding: 6px; border: 1px solid var(--border); border-radius: 8px;
+      background: rgba(255,255,255,.8); color: var(--soft); font-size: 11px;
+      cursor: pointer; text-align: center; transition: all .12s;
+    }
+    .btn-sm:hover { background: var(--accent); color: white; border-color: var(--accent); }
+    .btn-sm.danger:hover { background: var(--red); border-color: var(--red); }
+
+    /* Editor */
+    .editor-container { flex: 1; display: flex; flex-direction: column; }
+    .editor-toolbar {
+      padding: 8px 12px; display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid var(--border); background: rgba(255,255,255,.3);
+    }
+    .editor-status { font-size: 11px; color: var(--muted); }
+    .editor-status .saved { color: var(--green); }
+    .editor-status .modified { color: var(--amber); }
+    .save-btn {
+      margin-left: auto; padding: 5px 14px; border: none; border-radius: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      color: white; font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: opacity .15s;
+    }
+    .save-btn:hover { opacity: .9; }
+    .save-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .editor-wrap { flex: 1; position: relative; }
+    .editor-textarea {
+      width: 100%; height: 100%; border: none; outline: none; resize: none;
+      padding: 16px 20px; font-family: "Fira Code", "Cascadia Code", "Consolas", monospace;
+      font-size: 13.5px; line-height: 1.6; color: var(--text);
+      background: rgba(255,255,255,.6);
+      tab-size: 2;
+    }
+    .editor-textarea::placeholder { color: #aab0bc; }
+    .editor-textarea::-webkit-scrollbar { width: 8px; }
+    .editor-textarea::-webkit-scrollbar-thumb { background: rgba(31,42,68,.14); border-radius: 8px; }
+
+    /* Preview */
+    .preview-container { flex: 1; overflow: auto; padding: 20px; }
+    .preview-container::-webkit-scrollbar { width: 8px; }
+    .preview-container::-webkit-scrollbar-thumb { background: rgba(31,42,68,.14); border-radius: 8px; }
+
+    /* Markdown styles */
+    .preview-content { font-size: 14px; line-height: 1.7; }
+    .preview-content h1 { font-size: 22px; font-weight: 700; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 2px solid var(--border); }
+    .preview-content h2 { font-size: 18px; font-weight: 600; margin: 18px 0 8px; color: var(--soft); }
+    .preview-content h3 { font-size: 15px; font-weight: 600; margin: 14px 0 6px; color: var(--accent); }
+    .preview-content p { margin: 8px 0; }
+    .preview-content ul, .preview-content ol { margin: 8px 0; padding-left: 24px; }
+    .preview-content li { margin: 4px 0; }
+    .preview-content code {
+      font-family: "Fira Code", "Cascadia Code", monospace; font-size: 12.5px;
+      background: rgba(0,0,0,.05); padding: 2px 5px; border-radius: 4px;
+    }
+    .preview-content pre {
+      background: rgba(0,0,0,.04); padding: 12px 14px; border-radius: 10px;
+      overflow-x: auto; margin: 10px 0;
+    }
+    .preview-content pre code { background: none; padding: 0; }
+    .preview-content blockquote {
+      border-left: 3px solid var(--accent); margin: 10px 0; padding: 6px 14px;
+      background: rgba(59,130,246,.05); border-radius: 0 8px 8px 0;
+    }
+    .preview-content table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    .preview-content th, .preview-content td {
+      border: 1px solid var(--border); padding: 8px 12px; text-align: left;
+    }
+    .preview-content th { background: rgba(59,130,246,.08); font-weight: 600; }
+    .preview-content a { color: var(--accent); text-decoration: none; }
+    .preview-content a:hover { text-decoration: underline; }
+    .preview-content strong { font-weight: 600; }
+    .preview-content em { font-style: italic; }
+    .preview-content hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+    .empty-state {
+      height: 100%; display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 14px; flex-direction: column; gap: 8px;
+    }
+
+    @media (max-width: 1000px) {
+      .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <!-- File Browser -->
+    <section class="pane">
+      <div class="head">
+        <div class="title">Files</div>
+        <div class="hint" id="wsStatus">connecting...</div>
+      </div>
+      <div class="search-box">
+        <input class="search-input" id="fileSearch" placeholder="Search files..." />
+      </div>
+      <div class="file-list" id="fileList"></div>
+      <div class="file-actions">
+        <button class="btn-sm" onclick="createFile()">+ New</button>
+        <button class="btn-sm danger" id="deleteBtn" onclick="deleteFile()" disabled>Delete</button>
+      </div>
+    </section>
+
+    <!-- Editor -->
+    <section class="pane editor-container">
+      <div class="head">
+        <div class="title">Editor</div>
+        <div class="hint" id="currentFile">No file selected</div>
+      </div>
+      <div class="editor-toolbar">
+        <span class="editor-status" id="editorStatus"></span>
+        <button class="save-btn" id="saveBtn" onclick="saveFile()" disabled>Save</button>
+      </div>
+      <div class="editor-wrap">
+        <textarea class="editor-textarea" id="editor" placeholder="Select a file from the left panel..." disabled></textarea>
+      </div>
+    </section>
+
+    <!-- Preview -->
+    <section class="pane">
+      <div class="head">
+        <div class="title">Preview</div>
+        <div class="hint">Markdown</div>
+      </div>
+      <div class="preview-container" id="previewContainer">
+        <div class="empty-state">
+          <div>Preview will appear here</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    const fileListEl = document.getElementById('fileList');
+    const editorEl = document.getElementById('editor');
+    const previewEl = document.getElementById('previewContainer');
+    const currentFileEl = document.getElementById('currentFile');
+    const editorStatusEl = document.getElementById('editorStatus');
+    const saveBtn = document.getElementById('saveBtn');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const fileSearch = document.getElementById('fileSearch');
+    const wsStatusEl = document.getElementById('wsStatus');
+
+    let currentPath = null;
+    let originalContent = '';
+    let isModified = false;
+    let fileTree = [];
+    let ws;
+
+    // --- File Browser ---
+    function renderFileList(files, filter = '', container = fileListEl, depth = 0) {
+      if (depth === 0) container.innerHTML = '';
+      for (const f of files) {
+        const childRel = f.path;
+        if (f.type === 'directory') {
+          const dirEl = document.createElement('div');
+          dirEl.innerHTML = `
+            <div class="file-item dir-item" style="padding-left:${8+depth*14}px" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">
+              <span class="icon">📁</span>
+              <span class="name">${esc(f.name)}</span>
+            </div>
+            <div class="dir-children"></div>
+          `;
+          container.appendChild(dirEl);
+          if (f.children) renderFileList(f.children, filter, dirEl.querySelector('.dir-children'), depth+1);
+        } else {
+          if (filter && !f.name.toLowerCase().includes(filter.toLowerCase())) continue;
+          const isActive = f.path === currentPath;
+          const fileEl = document.createElement('div');
+          fileEl.className = `file-item${isActive ? ' active' : ''}`;
+          fileEl.style.paddingLeft = `${8+depth*14}px`;
+          fileEl.innerHTML = `
+            <span class="icon">${f.name.endsWith('.py') ? '🐍' : '📄'}</span>
+            <span class="name">${esc(f.name)}</span>
+          `;
+          fileEl.onclick = () => loadFile(f.path);
+          container.appendChild(fileEl);
+        }
+      }
+    }
+
+    function esc(s) { return String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+    // --- Load File ---
+    async function loadFile(path) {
+      if (isModified && !confirm('Current file has unsaved changes. Continue?')) return;
+      try {
+        const resp = await fetch(`/api/file/${path}`);
+        const data = await resp.json();
+        if (data.error) { alert(data.error); return; }
+        currentPath = path;
+        originalContent = data.content;
+        editorEl.value = data.content;
+        editorEl.disabled = false;
+        isModified = false;
+        updateUI();
+        renderFileList(fileTree, fileSearch.value);
+        updatePreview();
+      } catch (e) { alert('Failed to load: ' + e.message); }
+    }
+
+    // --- Save ---
+    async function saveFile() {
+      if (!currentPath || !isModified) return;
+      try {
+        const resp = await fetch('/api/file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: currentPath, content: editorEl.value }),
+        });
+        const data = await resp.json();
+        if (data.error) { alert(data.error); return; }
+        originalContent = editorEl.value;
+        isModified = false;
+        updateUI();
+      } catch (e) { alert('Save failed: ' + e.message); }
+    }
+
+    // --- Create ---
+    async function createFile() {
+      const name = prompt('New file name (relative to memory/, e.g. my_sop.md):');
+      if (!name) return;
+      try {
+        const resp = await fetch('/api/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: name, content: `# ${name.replace(/\.\w+$/, '')}\n\n` }),
+        });
+        const data = await resp.json();
+        if (data.error) { alert(data.error); return; }
+        refreshFiles();
+        loadFile(name);
+      } catch (e) { alert('Create failed: ' + e.message); }
+    }
+
+    // --- Delete ---
+    async function deleteFile() {
+      if (!currentPath) return;
+      if (!confirm(`Delete ${currentPath}?`)) return;
+      try {
+        const resp = await fetch(`/api/file/${currentPath}`, { method: 'DELETE' });
+        const data = await resp.json();
+        if (data.error) { alert(data.error); return; }
+        currentPath = null;
+        editorEl.value = '';
+        editorEl.disabled = true;
+        isModified = false;
+        updateUI();
+        refreshFiles();
+      } catch (e) { alert('Delete failed: ' + e.message); }
+    }
+
+    // --- Preview ---
+    function updatePreview() {
+      const md = editorEl.value;
+      if (!md.trim()) {
+        previewEl.innerHTML = '<div class="empty-state">Preview will appear here</div>';
+        return;
+      }
+      try {
+        previewEl.innerHTML = `<div class="preview-content">${marked.parse(md)}</div>`;
+      } catch (e) {
+        previewEl.innerHTML = `<div class="preview-content" style="color:var(--red)">${esc(md)}</div>`;
+      }
+    }
+
+    // --- UI State ---
+    function updateUI() {
+      currentFileEl.textContent = currentPath || 'No file selected';
+      deleteBtn.disabled = !currentPath;
+      saveBtn.disabled = !isModified;
+      if (isModified) {
+        editorStatusEl.innerHTML = '<span class="modified">Modified</span>';
+      } else if (currentPath) {
+        editorStatusEl.innerHTML = '<span class="saved">Saved</span>';
+      } else {
+        editorStatusEl.innerHTML = '';
+      }
+    }
+
+    // --- Editor Events ---
+    let previewTimer = null;
+    editorEl.addEventListener('input', () => {
+      isModified = editorEl.value !== originalContent;
+      updateUI();
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(updatePreview, 300);
+    });
+
+    editorEl.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveFile(); }
+      // Tab support
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        const start = editorEl.selectionStart;
+        const end = editorEl.selectionEnd;
+        editorEl.value = editorEl.value.substring(0, start) + '  ' + editorEl.value.substring(end);
+        editorEl.selectionStart = editorEl.selectionEnd = start + 2;
+      }
+    });
+
+    // --- Search ---
+    fileSearch.addEventListener('input', () => renderFileList(fileTree, fileSearch.value));
+
+    // --- WebSocket ---
+    async function refreshFiles() {
+      try {
+        const resp = await fetch('/api/files');
+        const data = await resp.json();
+        fileTree = data.files || [];
+        renderFileList(fileTree, fileSearch.value);
+      } catch (e) { console.error('refresh failed', e); }
+    }
+
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws`);
+      ws.onopen = () => wsStatusEl.textContent = 'connected';
+      ws.onclose = () => {
+        wsStatusEl.textContent = 'reconnecting...';
+        setTimeout(connect, 1200);
+      };
+      ws.onerror = () => wsStatusEl.textContent = 'error';
+      ws.onmessage = ev => {
+        const data = JSON.parse(ev.data);
+        if (data.type === 'hello' || data.type === 'files') {
+          fileTree = data.files || [];
+          renderFileList(fileTree, fileSearch.value);
+        } else if (data.type === 'file_saved' && data.path !== currentPath) {
+          // Another client saved — refresh file list
+          refreshFiles();
+        } else if (data.type === 'file_created' || data.type === 'file_deleted') {
+          refreshFiles();
+        }
+      };
+    }
+
+    // --- Init ---
+    connect();
+  </script>
+</body>
+</html>
