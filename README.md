@@ -536,6 +536,78 @@ python launch.pyw
 
 ---
 
+## 🧩 新功能模块（2026-06-03）
+
+### 监控增强 (`frontends/cost_monitor.py`)
+
+系统资源监控 + 成本追踪仪表盘，实时显示 CPU、内存、磁盘使用情况。
+
+```bash
+python frontends/cost_monitor.py --port 8900
+```
+
+### 聊天增强
+
+在现有前端（stapp.py/tui_v3.py）基础上添加图片粘贴支持和会话历史管理。
+
+### 编排增强
+
+扩展 conductor.py，添加 DAG 依赖调度（子任务间前置依赖）和编排模板功能。
+
+### 待办增强
+
+扩展 plan_state.py，添加悬浮任务卡片 UI 和从对话自动识别意图生成待办项。
+
+### 回溯系统 (`frontends/timeline_app.py`)
+
+对话时间线可视化，支持从历史点 Fork 分支、多时间线切换。
+
+```bash
+python frontends/timeline_app.py --port 8910
+```
+
+### 蜂巢系统 (`frontends/hive_app.py`)
+
+基于 BBS 的多 Agent 协作系统，支持目标发布、Worker 注册、任务领取、结果验收。
+
+```bash
+# 启动 BBS 核心
+python frontends/agent_bbs.py --port 58800 --db hive_bbs.db
+
+# 启动管理前端
+python frontends/hive_app.py --port 58801 --db hive_bbs.db
+```
+
+### 吸收系统 (`frontends/morphling_app.py`)
+
+Morphling 项目能力分析与吸收，支持目标项目扫描、能力提取、吸收流程管理。
+
+```bash
+python frontends/morphling_app.py --port 58802
+```
+
+### 技能系统
+
+技能树可视化 + SOP 在线编辑器，递归扫描 memory/ 目录构建树状结构。
+
+```bash
+# 技能树可视化
+python frontends/skill_tree_app.py --port 8901
+
+# SOP 编辑器
+python frontends/sop_editor.py --port 8902
+```
+
+### 更新系统 (`frontends/update_app.py`)
+
+Git 版本检测、差异对比、一键更新、冲突自动合并。
+
+```bash
+python frontends/update_app.py --port 8901
+```
+
+---
+
 ## 💻 使用方式
 
 ### 前端启动
@@ -720,6 +792,16 @@ GenericAgent 通过 **分层记忆 × 最小工具集 × 自主执行循环** �
 
 ## 📅 路线图与最新动态
 
+- **2026-06-03** — 🆕 **多功能模块扩展**。新增 9 个功能模块，全面提升 GenericAgent 的自主 Agent 能力：
+  - **监控增强** — 系统资源监控（CPU/内存/磁盘）+ 成本追踪仪表盘
+  - **聊天增强** — 图片粘贴支持 + 会话历史管理
+  - **编排增强** — DAG 依赖调度 + 编排模板
+  - **待办增强** — 自动意图识别 + 悬浮任务卡片
+  - **回溯系统** — 对话时间线可视化 + 分支 Fork
+  - **蜂巢系统** — 多 Agent BBS 协作（目标/Worker/任务）
+  - **吸收系统** — Morphling 项目能力分析与吸收
+  - **技能系统** — 技能树可视化 + SOP 在线编辑器
+  - **更新系统** — Git 版本检测 + 一键更新
 - **2026-05-15** — 🖥️ **桌面 GUI 发布**。一键安装会自带可直接运行的桌面端（`frontends/GenericAgent.exe`），开发者也可用 `python launch.pyw` 启动。
 - **2026-05-14** — 🆕 **Conductor 子 Agent 编排**。派发、监督、自动清理并行子 Agent；与 `/btw` 旁路子 Agent 互补，提供一等公民级的任务委派原语。
 - **2026-05-12** — 🆕 **TUI v2 正式发布**（`frontends/tuiapp_v2.py`）。重做视觉风格的 Textual 前端，支持图片粘贴折叠、文件粘贴、块删除、Ctrl+C 复制、历史导航，以及 `/llm` / `/export` / `/continue` 选择器。
