@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Skill Tree</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --panel: rgba(255,255,255,0.78);
+      --border: rgba(31,42,68,0.10);
+      --text: #172033;
+      --muted: #7a8497;
+      --soft: #43506a;
+      --accent: #3b82f6;
+      --accent-2: #8b5cf6;
+      --green: #10b981;
+      --amber: #f59e0b;
+      --shadow: 0 18px 55px rgba(30, 45, 80, .11);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; height: 100vh; overflow: hidden;
+      font-family: Inter, "SF Pro Display", "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 600px at 12% 8%, rgba(59, 130, 246, .14), transparent 54%),
+        radial-gradient(800px 650px at 86% 18%, (139, 92, 246, .12), transparent 58%),
+        linear-gradient(180deg, #fbfcff, var(--bg));
+    }
+    .app {
+      height: 100vh; padding: 20px;
+      display: grid;
+      grid-template-columns: minmax(360px, 45%) 1fr;
+      gap: 18px;
+    }
+    .pane {
+      min-height: 0;
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, rgba(255,255,255,.86), rgba(255,255,255,.66));
+      backdrop-filter: blur(18px);
+      border-radius: 26px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .head {
+      padding: 20px 20px 14px;
+      display: flex; align-items: baseline; justify-content: space-between;
+      border-bottom: 1px solid rgba(31,42,68,.075);
+      background: rgba(255,255,255,.34);
+    }
+    .title { font-size: 18px; letter-spacing: .2px; font-weight: 700; }
+    .hint { color: var(--muted); font-size: 12px; }
+    .toolbar { display: flex; gap: 8px; }
+    .toolbar button {
+      padding: 6px 14px; border: 1px solid var(--border); border-radius: 10px;
+      background: rgba(255,255,255,.8); color: var(--soft); font-size: 12px;
+      cursor: pointer; transition: all .15s;
+    }
+    .toolbar button:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+    /* Tree panel */
+    .tree-container { flex: 1; overflow: auto; padding: 16px; }
+    .tree-container::-webkit-scrollbar { width: 8px; }
+    .tree-container::-webkit-scrollbar-thumb { background: rgba(31,42,68,.16); border-radius: 10px; }
+
+    /* Tree nodes */
+    .tree-node { margin-left: 0; }
+    .tree-node .tree-node { margin-left: 20px; }
+    .node-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 10px; border-radius: 10px;
+      cursor: pointer; transition: background .15s;
+      font-size: 14px; line-height: 1.4;
+    }
+    .node-row:hover { background: rgba(59,130,246,.08); }
+    .node-row.selected { background: rgba(59,130,246,.15); }
+    .node-icon { width: 20px; text-align: center; flex-shrink: 0; }
+    .node-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .node-badge {
+      font-size: 10px; padding: 2px 6px; border-radius: 99px;
+      background: rgba(59,130,246,.12); color: var(--accent);
+    }
+    .node-toggle {
+      width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
+      font-size: 10px; color: var(--muted); transition: transform .15s;
+    }
+    .node-toggle.open { transform: rotate(90deg); }
+
+    /* Detail panel */
+    .detail { flex: 1; overflow: auto; padding: 24px; }
+    .detail::-webkit-scrollbar { width: 8px; }
+    .detail::-webkit-scrollbar-thumb { background: rgba(31,42,68,.16); border-radius: 10px; }
+    .detail-empty {
+      height: 100%; display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 14px;
+    }
+    .detail-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+    }
+    .detail-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; color: white;
+    }
+    .detail-title { font-size: 20px; font-weight: 700; }
+    .detail-path { font-size: 12px; color: var(--muted); }
+    .detail-meta { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+    .meta-card {
+      padding: 12px 16px; border-radius: 12px;
+      background: rgba(255,255,255,.7); border: 1px solid var(--border);
+      min-width: 120px;
+    }
+    .meta-label { font-size: 10px; text-transform: uppercase; color: var(--muted); letter-spacing: .08em; }
+    .meta-value { font-size: 16px; font-weight: 600; margin-top: 4px; }
+    .section-title {
+      font-size: 13px; font-weight: 600; color: var(--soft);
+      text-transform: uppercase; letter-spacing: .06em;
+      margin: 20px 0 10px; padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag {
+      padding: 4px 10px; border-radius: 99px; font-size: 12px;
+      background: rgba(59,130,246,.1); color: var(--accent);
+    }
+    .content-preview {
+      margin-top: 12px; padding: 14px; border-radius: 12px;
+      background: rgba(245,247,251,.78); border: 1px solid rgba(31,42,68,.07);
+      font-size: 13px; line-height: 1.5; max-height: 300px; overflow-y: auto;
+      white-space: pre-wrap; font-family: "Fira Code", "Cascadia Code", monospace;
+    }
+
+    /* Stats bar */
+    .stats {
+      padding: 10px 16px; border-top: 1px solid var(--border);
+      background: rgba(255,255,255,.3); display: flex; gap: 16px;
+      font-size: 12px; color: var(--muted);
+    }
+    .stat { display: flex; align-items: center; gap: 4px; }
+    .stat-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+    /* Search */
+    .search-box {
+      padding: 8px 16px; border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.3);
+    }
+    .search-input {
+      width: 100%; padding: 8px 12px; border: 1px solid var(--border);
+      border-radius: 10px; background: rgba(255,255,255,.8);
+      font-size: 13px; outline: none; transition: border-color .15s;
+    }
+    .search-input:focus { border-color: var(--accent); }
+
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; grid-template-rows: 50% 1fr; padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="pane">
+      <div class="head">
+        <div class="title">Skill Tree</div>
+        <div class="toolbar">
+          <button id="refreshBtn" title="Refresh">&#x21bb; Refresh</button>
+          <button id="expandBtn" title="Expand all">Expand</button>
+          <button id="collapseBtn" title="Collapse all">Collapse</button>
+        </div>
+      </div>
+      <div class="search-box">
+        <input class="search-input" id="searchInput" placeholder="Search skills..." />
+      </div>
+      <div class="tree-container" id="treeContainer"></div>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="pane">
+      <div class="head">
+        <div class="title">Detail</div>
+        <div class="hint" id="wsStatus">connecting...</div>
+      </div>
+      <div class="detail" id="detail">
+        <div class="detail-empty">Select a node from the tree</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const treeEl = document.getElementById('treeContainer');
+    const detailEl = document.getElementById('detail');
+    const statsEl = document.getElementById('stats');
+    const wsStatus = document.getElementById('wsStatus');
+    const searchInput = document.getElementById('searchInput');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const expandBtn = document.getElementById('expandBtn');
+    const collapseBtn = document.getElementById('collapseBtn');
+
+    let treeData = null;
+    let selectedId = null;
+    let expandedSet = new Set();
+    let ws;
+
+    // --- Icons ---
+    function icon(type, name) {
+      if (type === 'directory') return '📁';
+      if (name.endsWith('.md')) return '📄';
+      if (name.endsWith('.py')) return '🐍';
+      return '📋';
+    }
+
+    // --- Render tree ---
+    function renderTree(node, filter = '') {
+      if (!node) return '';
+      const children = node.children || [];
+      const filteredChildren = filter
+        ? children.filter(c => matchesFilter(c, filter))
+        : children;
+      if (filter && !matchesFilter(node, filter) && filteredChildren.length === 0) return '';
+
+      const isDir = node.type === 'directory';
+      const isExpanded = expandedSet.has(node.id) || filter;
+      const badge = isDir ? `${children.length}` : '';
+      const selected = node.id === selectedId ? ' selected' : '';
+
+      let html = `<div class="tree-node" data-id="${esc(node.id)}">`;
+      html += `<div class="node-row${selected}" onclick="selectNode('${esc(node.id)}')">`;
+      if (isDir) {
+        html += `<span class="node-toggle${isExpanded ? ' open' : ''}" onclick="event.stopPropagation(); toggleNode('${esc(node.id)}')">&#9654;</span>`;
+      } else {
+        html += `<span class="node-toggle"></span>`;
+      }
+      html += `<span class="node-icon">${icon(node.type, node.name)}</span>`;
+      html += `<span class="node-name">${esc(node.name)}</span>`;
+      if (badge) html += `<span class="node-badge">${badge}</span>`;
+      html += `</div>`;
+      if (isDir && isExpanded) {
+        for (const child of filteredChildren) {
+          html += renderTree(child, filter);
+        }
+      }
+      html += `</div>`;
+      return html;
+    }
+
+    function matchesFilter(node, filter) {
+      const lower = filter.toLowerCase();
+      if (node.name.toLowerCase().includes(lower)) return true;
+      if (node.metadata && node.metadata.title && node.metadata.title.toLowerCase().includes(lower)) return true;
+      if (node.children) return node.children.some(c => matchesFilter(c, filter));
+      return false;
+    }
+
+    function esc(s) {
+      return String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    }
+
+    function refreshTree() {
+      if (!treeData) return;
+      const filter = searchInput.value.trim();
+      treeEl.innerHTML = renderTree(treeData, filter);
+      updateStats();
+    }
+
+    // --- Node interaction ---
+    function toggleNode(id) {
+      if (expandedSet.has(id)) expandedSet.delete(id);
+      else expandedSet.add(id);
+      refreshTree();
+    }
+
+    function selectNode(id) {
+      selectedId = id;
+      refreshTree();
+      showDetail(findNode(treeData, id));
+    }
+
+    function findNode(node, id) {
+      if (!node) return null;
+      if (node.id === id) return node;
+      for (const c of (node.children || [])) {
+        const found = findNode(c, id);
+        if (found) return found;
+      }
+      return null;
+    }
+
+    // --- Detail panel ---
+    async function showDetail(node) {
+      if (!node) {
+        detailEl.innerHTML = '<div class="detail-empty">Select a node from the tree</div>';
+        return;
+      }
+      const isDir = node.type === 'directory';
+      const ic = icon(node.type, node.name);
+      const meta = node.metadata || {};
+
+      let html = `
+        <div class="detail-header">
+          <div class="detail-icon">${ic}</div>
+          <div>
+            <div class="detail-title">${esc(meta.title || node.name)}</div>
+            <div class="detail-path">${esc(node.path)}</div>
+          </div>
+        </div>
+      `;
+
+      // Meta cards
+      html += '<div class="detail-meta">';
+      html += `<div class="meta-card"><div class="meta-label">Type</div><div class="meta-value">${isDir ? 'Directory' : 'File'}</div></div>`;
+      if (isDir) {
+        html += `<div class="meta-card"><div class="meta-label">Children</div><div class="meta-value">${(node.children||[]).length}</div></div>`;
+      }
+      if (meta.size) {
+        html += `<div class="meta-card"><div class="meta-label">Size</div><div class="meta-value">${formatSize(meta.size)}</div></div>`;
+      }
+      html += '</div>';
+
+      // Subtitles
+      if (meta.subtitles && meta.subtitles.length) {
+        html += `<div class="section-title">Sections</div>`;
+        html += '<div class="tag-list">';
+        for (const s of meta.subtitles) {
+          html += `<span class="tag">${esc(s)}</span>`;
+        }
+        html += '</div>';
+      }
+
+      // Functions
+      if (meta.functions && meta.functions.length) {
+        html += `<div class="section-title">Features</div>`;
+        html += '<div class="tag-list">';
+        for (const f of meta.functions) {
+          html += `<span class="tag" style="background:rgba(16,185,129,.12);color:#10b981">${esc(f)}</span>`;
+        }
+        html += '</div>';
+      }
+
+      // File content preview
+      if (!isDir && node.path && node.path.endsWith('.md')) {
+        html += `<div class="section-title">Content Preview</div>`;
+        html += '<div class="content-preview" id="contentPreview">Loading...</div>';
+        loadFileContent(node.path);
+      }
+
+      detailEl.innerHTML = html;
+    }
+
+    async function loadFileContent(path) {
+      try {
+        const resp = await fetch(`/api/file/${path}`);
+        const data = await resp.json();
+        const el = document.getElementById('contentPreview');
+        if (el) {
+          const preview = data.content.substring(0, 2000);
+          el.textContent = preview + (data.content.length > 2000 ? '\n...' : '');
+        }
+      } catch (e) {
+        const el = document.getElementById('contentPreview');
+        if (el) el.textContent = 'Failed to load: ' + e.message;
+      }
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+      return (bytes/(1024*1024)).toFixed(1) + ' MB';
+    }
+
+    // --- Stats ---
+    function updateStats() {
+      if (!treeData) return;
+      let dirs = 0, files = 0, sops = 0;
+      function walk(n) {
+        if (n.type === 'directory') dirs++;
+        else { files++; if (n.name.endsWith('.md')) sops++; }
+        (n.children||[]).forEach(walk);
+      }
+      walk(treeData);
+      statsEl.innerHTML = `
+        <span class="stat"><span class="stat-dot" style="background:var(--accent)"></span> ${dirs} dirs</span>
+        <span class="stat"><span class="stat-dot" style="background:var(--green)"></span> ${files} files</span>
+        <span class="stat"><span class="stat-dot" style="background:var(--accent-2)"></span> ${sops} SOPs</span>
+      `;
+    }
+
+    // --- WebSocket ---
+    function connect() {
+      const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+      ws = new WebSocket(`${proto}://${location.host}/ws`);
+      ws.onopen = () => wsStatus.textContent = 'connected';
+      ws.onclose = () => {
+        wsStatus.textContent = 'disconnected · retrying';
+        setTimeout(connect, 1200);
+      };
+      ws.onerror = () => wsStatus.textContent = 'error';
+      ws.onmessage = ev => {
+        const data = JSON.parse(ev.data);
+        if (data.type === 'tree') {
+          treeData = data.data;
+          // Auto-expand root
+          if (treeData) expandedSet.add(treeData.id);
+          refreshTree();
+        }
+      };
+    }
+
+    // --- Controls ---
+    refreshBtn.addEventListener('click', () => {
+      fetch('/api/refresh', { method: 'POST' }).then(() => {});
+    });
+    expandBtn.addEventListener('click', () => {
+      function walk(n) { expandedSet.add(n.id); (n.children||[]).forEach(walk); }
+      if (treeData) walk(treeData);
+      refreshTree();
+    });
+    collapseBtn.addEventListener('click', () => {
+      expandedSet.clear();
+      if (treeData) expandedSet.add(treeData.id);
+      refreshTree();
+    });
+    searchInput.addEventListener('input', () => refreshTree());
+
+    connect();
+  </script>
+</body>
+</html>

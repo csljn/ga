@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Timeline - 对话回溯</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --bg-2: #161822;
+      --bg-3: #1c1f2e;
+      --border: rgba(255,255,255,.08);
+      --border-h: rgba(255,255,255,.14);
+      --text: #e4e6ef;
+      --muted: #8b8fa4;
+      --soft: #a0a4b8;
+      --accent: #6366f1;
+      --accent-glow: rgba(99,102,241,.25);
+      --green: #22c55e;
+      --green-bg: rgba(34,197,94,.12);
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --cyan: #06b6d4;
+      --user-bg: #1e293b;
+      --asst-bg: #1a1d2e;
+      --radius: 10px;
+      --shadow: 0 8px 32px rgba(0,0,0,.35);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: Inter, "SF Pro Display", "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* layout */
+    .app { display: flex; height: 100vh; }
+
+    /* sidebar */
+    .sidebar {
+      width: 280px;
+      min-width: 240px;
+      background: var(--bg-2);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-header {
+      padding: 16px 14px 12px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sidebar-header h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .sidebar-header h2 .icon { font-size: 18px; }
+    .sidebar-actions {
+      display: flex;
+      gap: 6px;
+    }
+    .sidebar-actions button {
+      flex: 1;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      background: var(--bg-3);
+      color: var(--soft);
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .sidebar-actions button:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-glow);
+    }
+    .timeline-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 6px 8px;
+    }
+    .timeline-list::-webkit-scrollbar { width: 4px; }
+    .timeline-list::-webkit-scrollbar-thumb { background: var(--border-h); border-radius: 4px; }
+    .tl-item {
+      padding: 10px 12px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all .15s;
+      margin-bottom: 4px;
+      border: 1px solid transparent;
+    }
+    .tl-item:hover { background: var(--bg-3); }
+    .tl-item.active {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+    }
+    .tl-item .tl-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .tl-item .tl-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 3px;
+      display: flex;
+      gap: 8px;
+    }
+    .tl-item .tl-parent {
+      font-size: 10px;
+      color: var(--cyan);
+      margin-top: 2px;
+    }
+
+    /* main area */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .toolbar {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--bg-2);
+    }
+    .toolbar .tl-title {
+      font-size: 16px;
+      font-weight: 700;
+      flex: 1;
+    }
+    .toolbar .tl-title input {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      width: 100%;
+      max-width: 400px;
+    }
+    .toolbar .tl-title input:focus {
+      border-color: var(--accent);
+      outline: none;
+      background: var(--bg-3);
+    }
+    .nav-group {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      background: var(--bg-3);
+      border-radius: 8px;
+      padding: 2px;
+    }
+    .nav-btn {
+      padding: 6px 10px;
+      border: none;
+      background: transparent;
+      color: var(--soft);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all .15s;
+    }
+    .nav-btn:hover { background: var(--border-h); color: var(--text); }
+    .nav-btn:active { background: var(--accent); color: #fff; }
+    .nav-indicator {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 0 8px;
+      min-width: 60px;
+      text-align: center;
+    }
+    .tb-btn {
+      padding: 6px 14px;
+      border: 1px solid var(--border);
+      background: var(--bg-3);
+      color: var(--soft);
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all .15s;
+    }
+    .tb-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .tb-btn.danger:hover { border-color: var(--red); color: var(--red); }
+
+    /* messages */
+    .messages-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 20px;
+      scroll-behavior: smooth;
+    }
+    .messages-container::-webkit-scrollbar { width: 6px; }
+    .messages-container::-webkit-scrollbar-thumb { background: var(--border-h); border-radius: 4px; }
+    .messages-container::-webkit-scrollbar-track { background: transparent; }
+    .messages-empty {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--muted);
+      font-size: 14px;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .messages-empty .empty-icon { font-size: 48px; opacity: .3; }
+
+    .msg {
+      max-width: 780px;
+      margin: 0 auto 12px;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      position: relative;
+      transition: all .2s;
+      border: 1px solid transparent;
+    }
+    .msg.cursor-here {
+      border-color: var(--accent);
+      box-shadow: 0 0 12px var(--accent-glow);
+    }
+    .msg.user {
+      background: var(--user-bg);
+      border-left: 3px solid var(--blue);
+    }
+    .msg.assistant {
+      background: var(--asst-bg);
+      border-left: 3px solid var(--green);
+    }
+    .msg .msg-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .msg .msg-role {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      border-radius: 4px;
+      letter-spacing: .5px;
+    }
+    .msg.user .msg-role { background: rgba(59,130,246,.2); color: var(--blue); }
+    .msg.assistant .msg-role { background: var(--green-bg); color: var(--green); }
+    .msg .msg-turn {
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .msg .msg-tools {
+      font-size: 10px;
+      color: var(--amber);
+      margin-left: auto;
+    }
+    .msg .msg-content {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .msg .msg-content::-webkit-scrollbar { width: 3px; }
+    .msg .msg-content::-webkit-scrollbar-thumb { background: var(--border-h); border-radius: 3px; }
+    .msg .msg-actions {
+      display: none;
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      gap: 4px;
+    }
+    .msg:hover .msg-actions { display: flex; }
+    .msg .fork-btn {
+      padding: 3px 10px;
+      border: 1px solid var(--cyan);
+      background: rgba(6,182,212,.1);
+      color: var(--cyan);
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      transition: all .15s;
+    }
+    .msg .fork-btn:hover {
+      background: rgba(6,182,212,.25);
+    }
+
+    /* input bar */
+    .input-bar {
+      padding: 12px 18px;
+      border-top: 1px solid var(--border);
+      background: var(--bg-2);
+      display: flex;
+      gap: 8px;
+    }
+    .input-bar input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      background: var(--bg-3);
+      color: var(--text);
+      border-radius: var(--radius);
+      font-size: 13px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .input-bar input:focus { border-color: var(--accent); }
+    .input-bar input::placeholder { color: var(--muted); }
+    .send-btn {
+      padding: 10px 20px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      border-radius: var(--radius);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: opacity .15s;
+    }
+    .send-btn:hover { opacity: .85; }
+    .send-btn:disabled { opacity: .4; cursor: default; }
+
+    /* toast */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: var(--bg-3);
+      border: 1px solid var(--border-h);
+      color: var(--text);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      box-shadow: var(--shadow);
+      z-index: 999;
+      transition: transform .3s ease;
+      pointer-events: none;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    /* modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.5);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--bg-2);
+      border: 1px solid var(--border-h);
+      border-radius: 12px;
+      padding: 24px;
+      min-width: 320px;
+      max-width: 480px;
+      box-shadow: var(--shadow);
+    }
+    .modal h3 { font-size: 15px; margin-bottom: 12px; }
+    .modal input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-3);
+      color: var(--text);
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    .modal .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .modal .modal-actions button {
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg-3);
+      color: var(--soft);
+    }
+    .modal .modal-actions button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    /* connection status */
+    .conn-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .conn-dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .conn-dot.off { background: var(--red); }
+  </style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h2><span class="icon">&#128337;</span> Timelines <span class="conn-dot off" id="connDot"></span></h2>
+      <div class="sidebar-actions">
+        <button onclick="importAll()" title="Import all log files">Import All</button>
+        <button onclick="importOne()" title="Import specific file">Import File</button>
+      </div>
+    </div>
+    <div class="timeline-list" id="tlList"></div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="toolbar" id="toolbar" style="display:none;">
+      <div class="tl-title">
+        <input id="renameInput" value="" onkeydown="if(event.key==='Enter')renameCurrent()"/>
+      </div>
+      <div class="nav-group">
+        <button class="nav-btn" onclick="nav('first')" title="First">&#9198;</button>
+        <button class="nav-btn" onclick="nav('prev')" title="Previous">&#9664;</button>
+        <span class="nav-indicator" id="navIndicator">0/0</span>
+        <button class="nav-btn" onclick="nav('next')" title="Next">&#9654;</button>
+        <button class="nav-btn" onclick="nav('last')" title="Last">&#9197;</button>
+      </div>
+      <button class="tb-btn" onclick="renameCurrent()">Rename</button>
+      <button class="tb-btn danger" onclick="deleteCurrent()">Delete</button>
+    </div>
+
+    <div class="messages-container" id="messages">
+      <div class="messages-empty">
+        <div class="empty-icon">&#128337;</div>
+        <div>Import a session to get started</div>
+      </div>
+    </div>
+
+    <div class="input-bar" id="inputBar" style="display:none;">
+      <input id="msgInput" placeholder="Send a message to this timeline..." onkeydown="if(event.key==='Enter')sendMsg()"/>
+      <button class="send-btn" onclick="sendMsg()">Send</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <h3>Import Log File</h3>
+    <input id="importPath" placeholder="Full path to model_responses file"/>
+    <div class="modal-actions">
+      <button onclick="closeModal('importModal')">Cancel</button>
+      <button class="primary" onclick="doImportFile()">Import</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = `http://${location.hostname}:8910`;
+let ws = null;
+let timelines = [];
+let currentId = null;
+let currentTimeline = null;
+
+// ---- WebSocket ----
+function connect() {
+  ws = new WebSocket(`ws://${location.hostname}:8910/ws`);
+  ws.onopen = () => {
+    document.getElementById('connDot').className = 'conn-dot on';
+    toast('Connected');
+  };
+  ws.onclose = () => {
+    document.getElementById('connDot').className = 'conn-dot off';
+    setTimeout(connect, 3000);
+  };
+  ws.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    if (data.type === 'hello' || data.type === 'timelines_updated') {
+      loadTimelines();
+    }
+    if (data.type === 'timeline_updated' && data.id === currentId) {
+      loadTimeline(currentId);
+    }
+    if (data.type === 'timelines') {
+      timelines = data.items || [];
+      renderSidebar();
+    }
+  };
+}
+connect();
+
+// ---- Toast ----
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ---- Modal ----
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+function importOne() { openModal('importModal'); }
+
+// ---- API ----
+async function api(path, opts = {}) {
+  const resp = await fetch(API + path, {
+    headers: {'Content-Type': 'application/json'},
+    ...opts,
+  });
+  return resp.json();
+}
+
+async function loadTimelines() {
+  const data = await api('/api/timelines');
+  timelines = data.items || [];
+  renderSidebar();
+}
+
+async function loadTimeline(tid) {
+  currentId = tid;
+  const data = await api(`/api/timelines/${tid}`);
+  currentTimeline = data;
+  renderToolbar(data);
+  renderMessages(data);
+}
+
+async function importAll() {
+  toast('Importing...');
+  const data = await api('/api/timelines/import', {method: 'POST', body: '{}'});
+  toast(`Imported ${data.count || 0} timeline(s)`);
+  loadTimelines();
+}
+
+async function doImportFile() {
+  const path = document.getElementById('importPath').value.trim();
+  if (!path) return;
+  closeModal('importModal');
+  const data = await api('/api/timelines/import', {
+    method: 'POST',
+    body: JSON.stringify({file: path}),
+  });
+  toast(`Imported ${data.count || 0} timeline(s)`);
+  loadTimelines();
+}
+
+async function nav(direction) {
+  if (!currentId) return;
+  const data = await api(`/api/timelines/${currentId}/navigate`, {
+    method: 'POST',
+    body: JSON.stringify({direction}),
+  });
+  if (data.ok) loadTimeline(currentId);
+}
+
+async function forkAt(msgId) {
+  if (!currentId) return;
+  const data = await api(`/api/timelines/${currentId}/fork`, {
+    method: 'POST',
+    body: JSON.stringify({message_id: msgId}),
+  });
+  if (data.id) {
+    toast(`Forked: ${data.name}`);
+    loadTimelines();
+    loadTimeline(data.id);
+  }
+}
+
+async function sendMsg() {
+  if (!currentId) return;
+  const input = document.getElementById('msgInput');
+  const content = input.value.trim();
+  if (!content) return;
+  input.value = '';
+  await api(`/api/timelines/${currentId}/send`, {
+    method: 'POST',
+    body: JSON.stringify({content}),
+  });
+  loadTimeline(currentId);
+}
+
+async function renameCurrent() {
+  if (!currentId) return;
+  const name = document.getElementById('renameInput').value.trim();
+  if (!name) return;
+  await api(`/api/timelines/${currentId}/rename`, {
+    method: 'POST',
+    body: JSON.stringify({name}),
+  });
+  toast('Renamed');
+  loadTimelines();
+}
+
+async function deleteCurrent() {
+  if (!currentId) return;
+  if (!confirm('Delete this timeline?')) return;
+  await api(`/api/timelines/${currentId}`, {method: 'DELETE'});
+  currentId = null;
+  currentTimeline = null;
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('inputBar').style.display = 'none';
+  document.getElementById('messages').innerHTML = '<div class="messages-empty"><div class="empty-icon">&#128337;</div><div>Import a session to get started</div></div>';
+  loadTimelines();
+  toast('Deleted');
+}
+
+// ---- Render ----
+function renderSidebar() {
+  const el = document.getElementById('tlList');
+  if (!timelines.length) {
+    el.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:12px;text-align:center">No timelines yet.<br>Click Import to start.</div>';
+    return;
+  }
+  el.innerHTML = timelines.map(t => `
+    <div class="tl-item ${t.id === currentId ? 'active' : ''}" onclick="loadTimeline('${t.id}')">
+      <div class="tl-name">${esc(t.name)}</div>
+      <div class="tl-meta">
+        <span>${t.message_count} msgs</span>
+        <span>${relTime(t.updated_at)}</span>
+      </div>
+      ${t.parent_id ? '<div class="tl-parent">&#10548; fork</div>' : ''}
+    </div>
+  `).join('');
+}
+
+function renderToolbar(tl) {
+  document.getElementById('toolbar').style.display = 'flex';
+  document.getElementById('inputBar').style.display = 'flex';
+  document.getElementById('renameInput').value = tl.name;
+  const total = tl.total || 0;
+  const cursor = tl.cursor >= 0 ? tl.cursor + 1 : 0;
+  document.getElementById('navIndicator').textContent = `${cursor}/${total}`;
+}
+
+function renderMessages(tl) {
+  const el = document.getElementById('messages');
+  const msgs = tl.messages || [];
+  if (!msgs.length) {
+    el.innerHTML = '<div class="messages-empty"><div class="empty-icon">&#128196;</div><div>No messages in this timeline</div></div>';
+    return;
+  }
+  // Determine which index is the cursor in the window
+  const cursorIdx = tl.cursor - (tl.window_start || 0);
+  el.innerHTML = msgs.map((m, i) => `
+    <div class="msg ${m.role} ${i === cursorIdx ? 'cursor-here' : ''}" data-id="${m.id}">
+      <div class="msg-header">
+        <span class="msg-role">${m.role}</span>
+        <span class="msg-turn">Turn ${m.turn || '?'}</span>
+        ${m.tool_info ? `<span class="msg-tools">&#128295; ${esc(m.tool_info)}</span>` : ''}
+      </div>
+      <div class="msg-content">${esc(m.content)}</div>
+      <div class="msg-actions">
+        <button class="fork-btn" onclick="forkAt('${m.id}')">&#10548; Fork</button>
+      </div>
+    </div>
+  `).join('');
+  // Scroll to cursor
+  const cursorEl = el.querySelector('.cursor-here');
+  if (cursorEl) cursorEl.scrollIntoView({behavior: 'smooth', block: 'center'});
+}
+
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function relTime(epoch) {
+  const d = Math.floor(Date.now()/1000 - epoch);
+  if (d < 60) return d + 's ago';
+  if (d < 3600) return Math.floor(d/60) + 'm ago';
+  if (d < 86400) return Math.floor(d/3600) + 'h ago';
+  return Math.floor(d/86400) + 'd ago';
+}
+
+// ---- Init ----
+loadTimelines();
+</script>
+</body>
+</html>
