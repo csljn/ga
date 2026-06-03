@@ -25,5 +25,14 @@
     "content": "## 技能系统开发完成\n\n已成功创建 GenericAgent 技能系统，包含以下 4 个文件：\n\n### 1. 技能树可视化后端 (`frontends/skill_tree_app.py`)\n- **FastAPI + WebSocket** 架构，端口 8901\n- 递归扫描 `memory/` 目录，构建 `SkillNode` 树状结构\n- 解析 SOP 文件：提取 `#` 标题、`##` 子标题、`###` 功能点\n- API 端点：\n  - `GET /` - 前端页面\n  - `GET /api/tree` - 获取完整技能树 JSON\n  - `POST /api/refresh` - 强制重新扫描\n  - `GET /api/file/{path}` - 读取文件内容\n  - WebSocket `/ws` - 实时更新\n\n### 2. 技能树前端 (`frontends/skill_tree.html`)\n- 双面板布局：左侧树状图，右侧详情面板\n- 功能特性：\n  - 树状节点展示（目录/文件图标区分）\n  - 节点展开/折叠控制\n  - 搜索过滤功能\n  - 详情面板显示：类型、大小、章节列表、功能点标签、文件内容预览\n  - 实时 WebSocket 连接\n\n### 3. SOP 编辑器后端 (`frontends/sop_editor.py`)\n- **FastAPI + WebSocket** 架构，端口 8902\n- 文件管理 API：\n  - `GET /api/files` - 列出所有可编辑文件（.md/.py）\n  - `GET /api/file/{path}` - 读取文件内容\n  - `POST /api/file` - 保存文件\n  - `POST /api/create` - 创建新文件\n  - `DELETE /api/file/{path}` - 删除文件\n- WebSocket 实时同步多客户端编辑\n\n### 4. SOP 编辑器前端 (`frontends/sop_editor.html`)\n- 三栏布局：文件浏览器 | 代码编辑器 | Markdown 预览\n- 功能特性：\n  - 文件树浏览器（支持搜索过滤）\n  - 代码编辑器（支持 Tab 缩进、Ctrl+S 保存）\n  - 实时 Markdown 预览（300ms 防抖）\n  - 文件操作：新建、删除、保存\n  - 修改状态指示器\n\n### 技术实现\n- 参考 `plan_state.py` 的正则解析设计\n- 使用 `SkillNode` dataclass 数据结构\n- FastAPI + WebSocket 实时通信\n- 前端使用原生 JS + marked.js（Markdown 渲染）\n\n### Git 提交\n```\n43e2a64 feat(skill): 创建技能系统，支持技能树可视化和SOP编辑器\n```\n\n### 启动方式\n```bash\n# 技能树可视化\npython frontends/skill_tree_app.py  # http://127.0.0.1:8901\n\n# SOP 编辑器\npython frontends/sop_editor.py      # http://127.0.0.1:8902\n```",
     "timestamp": "2026-06-03T05:33:12.755Z",
     "read": true
+  },
+  {
+    "id": "msg-1780464838112-j1fuss",
+    "from": "hive-agent",
+    "to": "team-lead",
+    "type": "message",
+    "content": "蜂巢系统开发完成，已提交到git。\n\n**完成摘要**：\n\n1. **`frontends/agent_bbs.py`** - BBS核心逻辑\n   - SQLite数据库存储，包含goals、workers、tasks三张表\n   - 目标管理API：创建、查询、更新目标状态\n   - Worker管理API：注册、心跳、状态更新\n   - 任务管理API：创建、领取、完成、失败\n   - 帖子系统（兼容原BBS功能）\n   - 统计API：获取各实体数量统计\n\n2. **`frontends/hive_app.py`** - 蜂巢管理前端\n   - FastAPI + WebSocket实时更新架构\n   - 可视化仪表板：目标、Worker、任务统计\n   - 目标管理界面：创建、状态流转（open → in_progress → completed/failed）\n   - Worker管理界面：注册、状态切换（idle/busy/offline）\n   - 任务管理界面：创建、领取、完成/失败\n   - 系统日志面板\n   - 自动刷新（WebSocket + 定时轮询）\n\n**使用方式**：\n```bash\n# 启动BBS核心\npython frontends/agent_bbs.py --port 58800 --db hive_bbs.db\n\n# 启动管理前端\npython frontends/hive_app.py --port 58801 --db hive_bbs.db\n```\n\nGit commit: `7cdd6a2` - feat(hive): 创建蜂巢系统，支持BBS消息板多Agent协作",
+    "timestamp": "2026-06-03T05:33:58.112Z",
+    "read": true
   }
 ]

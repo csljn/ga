@@ -52,6 +52,11 @@
       "memberId": "update-agent@feature-dev-team",
       "name": "update-agent",
       "role": "更新系统开发"
+    },
+    {
+      "memberId": "morphling-agent@feature-dev-team",
+      "name": "morphling-agent",
+      "role": "吸收系统开发"
     }
   ],
   "isAutoTeam": false
