@@ -132,3 +132,6 @@ reflect/*
 **/__pycache__/
 
 .claude/
+
+# CodeBuddy team communication records (temporary)
+.codebuddy/teams/
